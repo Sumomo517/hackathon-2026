@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>深夜の冷蔵庫あらし - Midnight Fridge Raider AI DX</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js for retro/synth sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Google Fonts DotGothic16 for a nostalgic retro game vibe -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'DotGothic16', sans-serif;
+            background-color: #0b0c10;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .pixel-font {
+            font-family: 'DotGothic16', sans-serif;
+        }
+        /* 3D Refrigerator styling */
+        .fridge-container {
+            perspective: 1000px;
+        }
+        .fridge {
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.5s ease;
+        }
+        .fridge-door {
+            transform-origin: left center;
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 20;
+        }
+        /* Open/Close Animations */
+        .fridge.open .fridge-door {
+            transform: rotateY(-115deg);
+        }
+        .fridge.open .fridge-inside-glow {
+            opacity: 1;
+            box-shadow: 0 0 50px 20px rgba(253, 224, 71, 0.6);
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px) rotate(-1deg); }
+            75% { transform: translateX(4px) rotate(1deg); }
+        }
+        .shake-warning {
+            animation: shake 0.15s infinite;
+        }
+        .progress-smooth {
+            transition: width 0.1s linear;
+        }
+        .projectile {
+            position: absolute;
+            pointer-events: none;
+            z-index: 40;
+            transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        @keyframes danger-zoom {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); color: #ef4444; }
+        }
+        .heartbeat-low-time {
+            animation: danger-zoom 0.5s infinite;
+        }
+        /* Typing cursor effect */
+        .typing::after {
+            content: '|';
+            animation: blink 0.8s infinite;
+        }
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body class="overflow-hidden text-gray-100 flex flex-col justify-between min-h-screen relative">
+
+    
+    <!-- Title Screen Overlay -->
+    <div id="start-screen" class="fixed inset-0 bg-[#0b0c10] z-50 flex flex-col items-center justify-center p-4 overflow-y-auto">
+        <div class="max-w-md w-full bg-slate-900 border-4 border-yellow-500 rounded-2xl p-6 shadow-2xl relative overflow-hidden my-auto">
+            <div class="absolute -top-10 -left-10 w-40 h-40 bg-yellow-500/10 rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl"></div>
+            
+            <div class="flex justify-between items-center mb-1">
+                <span class="text-[10px] bg-yellow-500/20 text-yellow-400 font-bold px-2 py-0.5 rounded border border-yellow-500/30">Gemini AI Dynamic Edition</span>
+                <span class="text-[10px] text-gray-400 font-mono">v3.0-AI</span>
+            </div>
+            <h1 class="text-3xl md:text-4xl font-black text-yellow-400 mb-1 pixel-font tracking-wider text-center animate-pulse">深夜の冷蔵庫あらし</h1>
+            <p class="text-center text-[10px] text-gray-400 tracking-widest uppercase mb-4">Midnight Fridge Raider - AI DX</p>
+            
+            <!-- Instructions Panel -->
+            <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-left text-xs space-y-2 mb-4 max-h-52 overflow-y-auto">
+                <p class="text-yellow-300 font-bold flex items-center">
+                    <span class="mr-1.5 text-base">🚪</span> ワンクリックで開閉！
+                </p>
+                <p class="text-gray-300 pl-4">
+                    ボタンまたは<span class="bg-slate-800 px-1 rounded font-mono text-yellow-400">スペースキー</span>を「1度押す」と冷蔵庫が開いて自動で食べ続けます。もう一度押すと閉めます。
+                </p>
+                <p class="text-purple-400 font-bold flex items-center">
+                    <span class="mr-1.5 text-base">👣</span> 足音の主は誰だ！？
+                </p>
+                <p class="text-gray-300 pl-4">
+                    深夜、キッチンに誰かの足音が響きます。**お母さんか泥棒か分かりません！** 姿を現した瞬間に、泥棒なら「投げる」、お母さんなら「冷蔵庫を閉めて隠れる」という究極の二者択一！
+                </p>
+                <p class="text-blue-400 font-bold flex items-center">
+                    <span class="mr-1.5 text-base">🤖</span> AI言い訳尋問システム
+                </p>
+                <p class="text-gray-300 pl-4">
+                    もしお母さんに見つかっても、まだチャンスがあります。深夜に冷蔵庫の前に立っている言い訳をAI（Gemini）がリアルタイム判定！お母さんが納得すればセーフ！
+                </p>
+            </div>
+
+            <!-- Dynamic Key Information -->
+            <div class="bg-slate-950/70 p-3 rounded-lg border border-slate-800/80 mb-5 text-[11px] text-gray-400">
+                <p class="font-semibold text-gray-300 mb-1 flex items-center">
+                    <span class="w-2 h-2 rounded-full bg-green-500 mr-2 animate-ping"></span>
+                    AI接続状況: <span class="text-green-400 ml-1">稼働中（Canvas API連携）</span>
+                </p>
+                <p>※言い訳のタイピングや、AIが毎晩自動生成する特殊イベントをお楽しみください！</p>
+            </div>
+
+            <button id="btn-start" class="w-full py-3.5 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black text-xl rounded-xl transition duration-150 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-yellow-500/10 pixel-font">
+                台所へ侵入する (START)
+            </button>
+        </div>
+    </div>
+
+
+    <!-- AI Interrogation / Excuse Modal (The Core Gemini Interactivity) -->
+    <div id="excuse-modal" class="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4 hidden">
+        <div class="max-w-md w-full bg-slate-900 border-4 border-purple-500 rounded-2xl p-6 shadow-2xl relative">
+            <div class="absolute -top-3 left-6 px-3 py-1 bg-purple-600 border border-purple-400 text-white font-bold text-xs rounded-full uppercase tracking-wider pixel-font animate-bounce">
+                AI お母さんからの尋問！
+            </div>
+            
+            <div class="flex items-center space-x-3 mb-4 mt-2">
+                <span class="text-5xl filter drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]">👵</span>
+                <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl flex-1 text-xs text-yellow-300 font-medium">
+                    お母さん: 「ちょっと！こんな夜中に、冷蔵庫を開けっ放しにして何をしてるの！？」
+                </div>
+            </div>
+
+            <!-- Typing Excuses Box -->
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-[11px] text-gray-400 mb-1.5 font-bold uppercase tracking-wider">言い訳を自由に入力してお母さんを納得させろ！</label>
+                    <textarea id="excuse-input" rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-purple-500 placeholder-gray-600" placeholder="例: 喉が渇いてお薬を探してました... / 明日の朝ごはんを仕込んでただけだよ！"></textarea>
+                </div>
+
+                <!-- Fast Preset Templates -->
+                <div class="space-y-1.5">
+                    <span class="text-[10px] text-gray-500 block font-bold">素早く選べる言い訳テンプレート:</span>
+                    <div class="grid grid-cols-2 gap-2" id="preset-container">
+                        <button class="preset-btn text-left text-[11px] bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-purple-500 p-2 rounded-lg transition text-gray-300">「喉が渇いて、コップ一杯の水を飲みに来ただけだよ…」</button>
+                        <button class="preset-btn text-left text-[11px] bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-purple-500 p-2 rounded-lg transition text-gray-300">「冷蔵庫から変な音がしたから、閉まってるか確かめてた！」</button>
+                        <button class="preset-btn text-left text-[11px] bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-purple-500 p-2 rounded-lg transition text-gray-300">「夢遊病かもしれない…気づいたら冷蔵庫を開けて立ってたんだ」</button>
+                        <button class="preset-btn text-left text-[11px] bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-purple-500 p-2 rounded-lg transition text-gray-300">「お母さんのために明日サプライズで作るケーキの確認だよ！」</button>
+                    </div>
+                </div>
+
+                <!-- Submit and Loader -->
+                <div class="pt-2">
+                    <button id="btn-submit-excuse" class="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition duration-150 transform active:scale-95 flex items-center justify-center space-x-2">
+                        <span>💬 言い訳を伝える（AI判定開始）</span>
+                    </button>
+                    
+                    <!-- AI Loading State -->
+                    <div id="excuse-loading" class="hidden mt-3 flex flex-col items-center justify-center space-y-2 py-4 bg-slate-950 rounded-xl border border-slate-800">
+                        <div class="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                        <p class="text-xs text-purple-400 font-bold pixel-font">お母さんが言い訳の信憑性を吟味しています...</p>
+                        <span class="text-[9px] text-gray-500">Gemini 3 Flash で判定中</span>
+                    </div>
+
+                    <!-- AI Result Display -->
+                    <div id="excuse-result" class="hidden mt-3 p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                            <span class="text-xs text-gray-400">お母さんの納得度:</span>
+                            <span id="excuse-score" class="text-xl font-black text-green-400 font-mono">85点</span>
+                        </div>
+                        <p id="excuse-response" class="text-xs text-gray-300 italic leading-relaxed"></p>
+                        <button id="btn-excuse-continue" class="w-full py-2 bg-green-600 hover:bg-green-500 text-white font-bold text-xs rounded-lg transition hidden">
+                            見逃してもらった！夜襲を再開する 🚪
+                        </button>
+                        <button id="btn-excuse-fail" class="w-full py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-lg transition hidden">
+                            怒られた（ゲームオーバーへ） 👹
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Game Over Screen Overlay -->
+    <div id="gameover-screen" class="fixed inset-0 bg-[#0b0c10]/95 z-50 flex flex-col items-center justify-center p-6 text-center hidden">
+        <div class="max-w-md w-full bg-red-950/80 border-4 border-red-600 rounded-2xl p-6 md:p-8 shadow-2xl relative">
+            <div class="text-6xl mb-3 animate-bounce" id="gameover-emoji">👹</div>
+            <h2 class="text-3xl font-black text-red-500 mb-2 pixel-font" id="gameover-title">コラァーッ！！！</h2>
+            <p id="gameover-reason" class="text-gray-300 text-sm mb-4">「こんな夜中に冷蔵庫開けて何食べてるの！？」</p>
+            
+            <!-- AI Dynamic Roast Box -->
+            <div class="bg-black/40 p-4 rounded-xl border border-red-900/30 text-left mb-6">
+                <span class="text-[9px] text-red-400 font-bold tracking-widest uppercase block mb-1">お母さんからの特製AIお説教 💬</span>
+                <p id="ai-roast-text" class="text-xs text-gray-300 italic leading-relaxed">接続中...</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-6 bg-slate-950/60 p-3 rounded-lg text-xs">
+                <div>
+                    <p class="text-gray-400">到達ステージ</p>
+                    <p id="gameover-stage" class="text-lg font-bold text-yellow-400 pixel-font">STAGE 1</p>
+                </div>
+                <div>
+                    <p class="text-gray-400">今回の満腹度</p>
+                    <p id="gameover-satiety" class="text-lg font-bold text-yellow-400 font-mono">0%</p>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <button id="btn-retry" class="w-full py-3.5 bg-red-600 hover:bg-red-500 text-white font-black text-lg rounded-xl transition duration-150 transform active:scale-95 shadow-lg shadow-red-600/20 pixel-font">
+                    もう一度忍び込む
+                </button>
+                <button id="btn-back-to-title" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-gray-300 font-medium text-xs rounded-xl transition">
+                    タイトルに戻る
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Clear Screen Overlay -->
+    <div id="clear-screen" class="fixed inset-0 bg-[#0b0c10]/95 z-50 flex flex-col items-center justify-center p-6 text-center hidden">
+        <div class="max-w-md w-full bg-slate-900 border-4 border-green-500 rounded-2xl p-8 shadow-2xl relative">
+            <div class="text-6xl mb-3 animate-pulse">😋</div>
+            <h2 class="text-3xl font-black text-green-400 mb-2 pixel-font">ごちそうさまでした！</h2>
+            <p id="clear-message" class="text-gray-300 text-xs mb-4">おやつを完璧に食べ尽くした！お母さんは気づいていない。</p>
+            
+            <!-- AI Dynamic Praise Box -->
+            <div class="bg-black/50 p-4 rounded-xl border border-green-900/40 text-left mb-6">
+                <span class="text-[9px] text-green-400 font-bold tracking-widest uppercase block mb-1">今夜の泥棒とお母さんのAI談話 💬</span>
+                <p id="ai-clear-praise" class="text-xs text-gray-300 italic leading-relaxed">おやつの余韻に浸っています...</p>
+            </div>
+
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 mb-6 flex justify-around items-center text-xs">
+                <div>
+                    <p class="text-gray-400">完食したおやつ</p>
+                    <p id="clear-food-name" class="text-base font-bold text-yellow-400">プリン 🍮</p>
+                </div>
+                <div>
+                    <p class="text-gray-400">残り時間ボーナス</p>
+                    <p id="clear-time-bonus" class="text-base font-bold text-green-400">30s</p>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <button id="btn-next-stage" class="w-full py-3.5 bg-green-500 hover:bg-green-400 text-slate-950 font-black text-lg rounded-xl transition duration-150 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-green-500/20 pixel-font">
+                    次の夜へ進む
+                </button>
+                <button id="btn-all-clear" class="w-full py-3.5 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black text-lg rounded-xl transition duration-150 hidden pixel-font">
+                    エンディングを見る
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Ending Screen Overlay -->
+    <div id="ending-screen" class="fixed inset-0 bg-[#0b0c10] z-50 flex flex-col items-center justify-center p-6 text-center hidden">
+        <div class="max-w-md w-full bg-slate-900 border-4 border-yellow-500 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
+            <div class="text-6xl mb-4 animate-bounce">🏆</div>
+            <h2 class="text-3xl font-black text-yellow-400 mb-1 pixel-font">深夜の冷蔵庫王！</h2>
+            <p class="text-[10px] text-gray-400 tracking-widest uppercase mb-6">Fridge Conqueror AI-DX</p>
+            
+            <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 text-left text-xs space-y-3 mb-6 leading-relaxed">
+                <p class="text-green-400 font-bold flex items-center text-sm">
+                    🎉 ステルス＆防衛 成功！
+                </p>
+                <p class="text-gray-300">
+                    あなたはお母さんの目を完全に欺き、さらに毎晩侵入してきたドロボウ達に冷蔵庫の食材を完璧なエイムで叩きつけ、家族のおやつを守り抜きました！
+                </p>
+                <p class="text-gray-300">
+                    次の朝、お母さんはすっかり軽くなった冷蔵庫と、床に散乱するネギの端切れを見て首をかしげています。
+                </p>
+                <p class="text-yellow-400 font-bold text-center pt-2">
+                    「ごちそうさまでした！明日はもっと美味しいものを入れておいてね！」
+                </p>
+            </div>
+
+            <button id="btn-back-to-title-from-end" class="w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black text-lg rounded-xl transition duration-150 pixel-font">
+                タイトルへ戻る
+            </button>
+        </div>
+    </div>
+
+
+    <!-- Header HUD -->
+    <header class="p-4 bg-slate-950/90 border-b border-slate-900 flex justify-between items-center z-10">
+        <div class="flex items-center space-x-3">
+            <span class="text-xl px-2 py-1 bg-slate-900 rounded-lg border border-slate-800 text-yellow-400 font-bold pixel-font animate-pulse" id="stage-badge">STAGE 1</span>
+            <div>
+                <h1 class="text-[10px] text-gray-400 font-bold tracking-wider hidden sm:block">MIDNIGHT FRIDGE Raider</h1>
+                <p class="text-xs text-yellow-500 font-semibold" id="target-food-desc">今夜の標的: 楽しみに残しておいたプリン</p>
+            </div>
+        </div>
+        
+        <!-- Timer Display -->
+        <div class="flex flex-col items-center justify-center bg-slate-900 border border-slate-800 px-3.5 py-1 rounded-xl min-w-[70px]" id="timer-box">
+            <span class="text-[8px] text-gray-400 font-bold uppercase tracking-wider">TIME LIMIT</span>
+            <span id="time-remaining" class="text-lg font-black text-green-400 font-mono tracking-widest">60.0</span>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <!-- Satiety Meter -->
+            <div class="w-20 md:w-32">
+                <div class="flex justify-between text-[8px] text-gray-400 mb-0.5 font-bold">
+                    <span>満腹度 (SATIETY)</span>
+                    <span id="satiety-value" class="text-yellow-400">0%</span>
+                </div>
+                <div class="h-2.5 bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-800">
+                    <div id="satiety-bar" class="h-full bg-gradient-to-r from-yellow-500 to-green-500 rounded-full w-0 progress-smooth"></div>
+                </div>
+            </div>
+            <!-- Sound Toggle -->
+            <button id="btn-sound" class="p-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-gray-400 hover:text-white transition">
+                <svg id="sound-on-icon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+                <svg id="sound-off-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
+            </button>
+        </div>
+    </header>
+
+
+    <!-- Daily AI Kitchen Forecast Banner -->
+    <div id="forecast-banner" class="bg-indigo-950/40 border-b border-indigo-900/30 py-2 px-4 flex justify-between items-center text-xs z-10 transition-all duration-300">
+        <div class="flex items-center space-x-2">
+            <span class="px-1.5 py-0.5 bg-indigo-500/20 text-indigo-300 rounded font-bold text-[9px] uppercase tracking-wider animate-pulse">今夜のAI台所予報</span>
+            <span id="forecast-title" class="font-extrabold text-indigo-200">読み込み中...</span>
+        </div>
+        <p id="forecast-effect" class="text-[11px] text-gray-400 italic hidden md:block">台所コンディションをAIがロードしています...</p>
+    </div>
+
+
+    <!-- Main Game Viewport -->
+    <main class="flex-1 relative flex items-center justify-center p-4">
+        <!-- Ambient Vignette (Dark Room) -->
+        <div id="ambient-overlay" class="absolute inset-0 bg-radial-vignette pointer-events-none transition-all duration-300 z-10" style="background: radial-gradient(circle, transparent 30%, rgba(5,6,10,0.96) 90%);"></div>
+
+        <!-- Alert Flasher -->
+        <div id="alert-flash" class="absolute inset-0 bg-red-900/0 pointer-events-none z-10 transition-colors duration-200"></div>
+
+        <!-- Projectile Canvas Container -->
+        <div id="projectile-container" class="absolute inset-0 pointer-events-none z-40 overflow-hidden"></div>
+
+        <!-- Left Entrance (Ambiguous footsteps approach from here) -->
+        <div id="kitchen-door-container" class="absolute left-6 md:left-20 top-1/4 bottom-1/4 w-28 md:w-32 border-l-4 border-slate-950 pointer-events-none z-0">
+            <!-- Footstep text bubble -->
+            <div id="footstep-bubble" class="absolute -top-12 left-4 bg-slate-900 border border-slate-800 text-xs text-yellow-500 px-3 py-1 rounded-full opacity-0 transition-opacity duration-300 whitespace-nowrap pixel-font shadow-lg">
+                👣 コツ… コツ… (誰かが近づいている！？)
+            </div>
+            
+            <!-- Door Body -->
+            <div id="kitchen-door" class="w-full h-full bg-slate-900/60 border-2 border-slate-950 rounded-r-lg transition-transform duration-700 origin-left" style="transform: rotateY(0deg);">
+                <!-- Ambiguous approach shadow -->
+                <div id="mom-shadow" class="absolute inset-0 bg-black opacity-0 transition-opacity duration-500 flex flex-col justify-center items-center">
+                    <!-- Dynamic entity representation: Silhouette -->
+                    <span id="shadow-emoji" class="text-5xl filter grayscale contrast-200 blur-sm brightness-0 scale-110">❓</span>
+                    <!-- Glowing eyes -->
+                    <div class="flex space-x-2 mt-2 opacity-0 transition-opacity duration-300" id="mom-eyes">
+                        <div class="w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,1)] animate-ping"></div>
+                        <div class="w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,1)] animate-ping"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side Burglar Window -->
+        <div id="burglar-window" class="absolute right-6 top-1/4 bottom-1/4 w-32 border-r-4 border-dashed border-blue-950 flex flex-col items-center justify-start pt-6 opacity-40 pointer-events-none z-0">
+            <span class="text-[8px] text-blue-500/60 font-bold tracking-widest uppercase pixel-font">勝手口🚪</span>
+            <div class="w-16 h-16 bg-blue-950/20 border-2 border-blue-900/30 rounded mt-2 flex items-center justify-center">
+                <span class="text-xl opacity-30">🌌</span>
+            </div>
+        </div>
+
+        <!-- Dynamic Entity Sprite Container -->
+        <div id="burglar-character" class="absolute right-12 top-1/2 -translate-y-1/2 transition-all duration-300 pointer-events-auto cursor-pointer z-30 hidden scale-100 flex flex-col items-center">
+            <!-- Burglar HP bar -->
+            <div class="w-14 bg-slate-900 border border-slate-800 p-0.5 rounded h-3 mb-1">
+                <div id="burglar-hp-fill" class="h-full bg-red-500 w-full transition-all duration-150"></div>
+            </div>
+            <!-- Alert Bubble -->
+            <div id="burglar-bubble" class="absolute -top-10 bg-blue-950 text-[10px] border border-blue-700 text-white font-bold px-2 py-0.5 rounded-lg whitespace-nowrap opacity-0 transition-opacity duration-150 shadow-md">
+                おやつを盗むぜ！🥷
+            </div>
+            <!-- Sprite representation -->
+            <div class="text-5xl md:text-6xl select-none" id="burglar-sprite">🥷</div>
+            <span class="text-[8px] bg-red-600/20 text-red-400 border border-red-500/30 rounded px-1.5 mt-1 font-bold animate-pulse">HIT TO KILL</span>
+        </div>
+
+
+        <!-- Central Stage: Refrigerator and Player -->
+        <div class="w-full max-w-2xl flex flex-col md:flex-row items-center justify-around gap-6 md:gap-8 z-20">
+            
+            <!-- Player Avatar (Left) -->
+            <div class="flex flex-col items-center">
+                <div class="relative w-28 h-28 md:w-36 md:h-36 flex items-center justify-center">
+                    <!-- Light illumination reflection on player -->
+                    <div id="player-light-reflection" class="absolute inset-0 bg-yellow-300/0 rounded-full blur-xl transition-all duration-300"></div>
+                    
+                    <!-- Character Base -->
+                    <div class="relative text-7xl md:text-8xl transition-transform duration-100" id="player-sprite">
+                        🤫
+                    </div>
+                    <!-- Activity indicators / Speech Bubbles -->
+                    <div id="player-bubble" class="absolute -top-8 bg-slate-950/95 border border-slate-800 text-xs px-2.5 py-1 rounded-lg text-yellow-300 opacity-0 transition-opacity duration-200 shadow-md whitespace-nowrap">
+                        もぐもぐ…
+                    </div>
+                </div>
+                <div class="text-center mt-2">
+                    <span class="text-xs px-2 py-0.5 bg-slate-950/80 rounded border border-slate-800 text-gray-400 font-medium" id="player-status-tag">水を飲んでるフリ</span>
+                </div>
+            </div>
+
+            <!-- Refrigerator (Right) -->
+            <div class="fridge-container w-44 h-72 md:w-48 md:h-80 flex items-center justify-center">
+                <div id="fridge" class="fridge w-36 h-64 md:w-40 md:h-72 bg-slate-800 rounded-2xl shadow-2xl border-4 border-slate-700 flex flex-col overflow-visible">
+                    
+                    <!-- Inside of Fridge (Visible when door is open) -->
+                    <div class="absolute inset-0 bg-amber-50 rounded-xl overflow-hidden flex flex-col justify-around p-3 z-0">
+                        <!-- Yellow internal bright glow -->
+                        <div class="fridge-inside-glow absolute inset-0 bg-yellow-200/40 opacity-0 transition-opacity duration-200 pointer-events-none"></div>
+                        
+                        <!-- Shelves -->
+                        <div class="border-b-2 border-amber-200/50 flex flex-col items-center justify-center flex-1 relative">
+                            <!-- Food container / Target -->
+                            <div class="relative flex flex-col items-center justify-center h-20 w-20 cursor-pointer" id="food-container">
+                                <div id="food-emoji" class="text-5xl transition-transform duration-150 transform hover:scale-110 active:scale-95">🍮</div>
+                                <div id="food-bites" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-lg font-extrabold text-red-500 opacity-0 select-none pointer-events-none">CRUNCH!</div>
+                            </div>
+                        </div>
+                        <div class="border-b-2 border-amber-200/50 flex justify-around items-center h-12">
+                            <span class="text-xl opacity-60">🥛</span>
+                            <span class="text-xl opacity-60">🍅</span>
+                        </div>
+                        <div class="flex justify-around items-center h-12">
+                            <span class="text-xl opacity-60">🥚</span>
+                            <span class="text-xl opacity-60">🥫</span>
+                            <span class="text-xl opacity-60">🍺</span>
+                        </div>
+                    </div>
+
+                    <!-- Fridge Door (Rotates on left hinge) -->
+                    <div id="fridge-door" class="fridge-door absolute inset-0 bg-slate-300 rounded-xl border-2 border-slate-400 shadow-[inset_-5px_0_10px_rgba(0,0,0,0.15)] flex flex-col justify-between p-4 z-20">
+                        <!-- Brand logo / Retro line -->
+                        <div class="flex justify-between items-center">
+                            <div class="h-1 w-8 bg-slate-400 rounded-full"></div>
+                            <span class="text-[8px] tracking-wider text-slate-500 font-bold">COOLTECH</span>
+                        </div>
+                        <!-- Handle (Right side) -->
+                        <div class="self-end w-4 h-16 bg-slate-400 border border-slate-500 rounded-md shadow-md flex items-center justify-center">
+                            <div class="w-1 h-12 bg-slate-300 rounded-full"></div>
+                        </div>
+                        <!-- Fridge stickers -->
+                        <div class="flex space-x-1 opacity-85 scale-75 origin-left">
+                            <span class="text-xs">😸</span>
+                            <span class="text-xs">⭐</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+
+    <!-- Danger Alert Bar -->
+    <div id="danger-alert-bar" class="bg-red-950/20 py-2 border-y border-red-900/30 flex justify-center items-center space-x-2 z-10 transition-colors duration-300">
+        <span class="inline-block w-2.5 h-2.5 rounded-full bg-green-500" id="danger-indicator"></span>
+        <span class="text-xs text-gray-400 font-bold uppercase tracking-widest pixel-font" id="danger-text">気配なし (SAFE)</span>
+    </div>
+
+    <!-- Controls Footer -->
+    <footer class="p-4 bg-slate-950 border-t border-slate-900 flex flex-col items-center justify-center space-y-4 z-20">
+        
+        <!-- Weapon Selectors (Dynamic) -->
+        <div class="flex justify-center items-center space-x-3 bg-slate-900 border border-slate-800/80 p-2 rounded-xl text-xs max-w-sm w-full shadow-inner">
+            <span class="text-[9px] text-gray-500 font-bold uppercase tracking-wide">武器変更:</span>
+            <div class="flex space-x-2">
+                <button class="weapon-btn px-2 py-1 rounded-md border border-purple-500/50 bg-purple-950/30 text-xs flex items-center space-x-1 transition-all" data-dmg="15" data-noise="5" data-emoji="🥚" data-name="タマゴ">
+                    <span>🥚</span>
+                    <span class="text-[10px] text-gray-300 font-bold">タマゴ</span>
+                </button>
+                <button class="weapon-btn px-2 py-1 rounded-md border border-slate-800 bg-slate-950 text-xs flex items-center space-x-1 transition-all" data-dmg="25" data-noise="15" data-emoji="🍅" data-name="トマト">
+                    <span>🍅</span>
+                    <span class="text-[10px] text-gray-300">トマト</span>
+                </button>
+                <button class="weapon-btn px-2 py-1 rounded-md border border-slate-800 bg-slate-950 text-xs flex items-center space-x-1 transition-all" data-dmg="40" data-noise="25" data-emoji="🥫" data-name="缶詰">
+                    <span>🥫</span>
+                    <span class="text-[10px] text-gray-300">缶詰</span>
+                </button>
+                <button class="weapon-btn px-2 py-1 rounded-md border border-slate-800 bg-slate-950 text-xs flex items-center space-x-1 transition-all" data-dmg="65" data-noise="50" data-emoji="🍺" data-name="ビール瓶">
+                    <span>🍺</span>
+                    <span class="text-[10px] text-gray-300">ビール</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="w-full max-w-md flex space-x-3">
+            <!-- Main Eat Button -->
+            <button id="btn-eat" class="flex-1 py-4 bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-slate-950 font-extrabold text-lg rounded-2xl shadow-xl shadow-yellow-500/10 active:scale-[0.98] transition-all duration-100 flex flex-col items-center justify-center relative touch-none pixel-font">
+                <span class="uppercase tracking-wide text-[8px] opacity-80 mb-0.5" id="eat-btn-sub">冷蔵庫の開閉</span>
+                <span class="text-sm flex items-center justify-center space-x-2">
+                    <span id="eat-btn-text">🚪 あける (OPEN)</span>
+                </span>
+                <span class="absolute right-3 bottom-1.5 text-[8px] text-slate-900 hidden md:block">SPACE</span>
+            </button>
+
+            <!-- Defensive Item Throwing Button -->
+            <button id="btn-throw" class="w-24 md:w-32 bg-red-700 hover:bg-red-600 active:bg-red-800 border border-red-500 text-white rounded-2xl shadow-lg flex flex-col items-center justify-center p-2 text-center transition-all duration-100 select-none cursor-pointer">
+                <span class="text-xl" id="selected-weapon-icon">🥚</span>
+                <span class="text-xs font-black pixel-font tracking-wide mt-1">THROW!</span>
+                <span class="text-[7px] text-red-200 uppercase mt-0.5">冷蔵庫開封時</span>
+            </button>
+        </div>
+        <p class="text-center text-[10px] text-gray-500">
+            足音が近づいたら**冷蔵庫を閉める(HIDE)**か、または**投げつける(ATTACK)**かの緊迫バトル！
+        </p>
+    </footer>
+
+
+    <script>
+        // Game Stage Configuration with specialized modifiers
+        const STAGES = [
+            { id: 1, food: "プリン", emoji: "🍮", satietyToClear: 100, eatSpeed: 1.2, timeLimit: 60, momIntervalMin: 5000, momIntervalMax: 9000, thiefRate: 0.35, description: "今夜の標的: 楽しみに残しておいたプリン" },
+            { id: 2, food: "ショートケーキ", emoji: "🍰", satietyToClear: 100, eatSpeed: 1.0, timeLimit: 55, momIntervalMin: 4500, momIntervalMax: 8000, thiefRate: 0.45, description: "今夜の標的: お姉ちゃんのショートケーキ" },
+            { id: 3, food: "高級マスクメロン", emoji: "🍈", satietyToClear: 100, eatSpeed: 0.85, timeLimit: 50, momIntervalMin: 4000, momIntervalMax: 7000, thiefRate: 0.55, description: "今夜の標的: お父さんが買ってきた超高級メロン" },
+            { id: 4, food: "昨夜の残りピザ", emoji: "🍕", satietyToClear: 100, eatSpeed: 0.75, timeLimit: 45, momIntervalMin: 3500, momIntervalMax: 6000, thiefRate: 0.65, description: "今夜の標的: 昨夜の残りの特大ペパロニピザ" },
+            { id: 5, food: "幻の極上パフェ", emoji: "🍨", satietyToClear: 100, eatSpeed: 0.65, timeLimit: 40, momIntervalMin: 3000, momIntervalMax: 5000, thiefRate: 0.75, description: "今夜の標的: 冷蔵庫の最奥に眠る 幻の深夜パフェ" }
+        ];
+
+        // Sound Engine Class
+        class SoundEngine {
+            constructor() {
+                this.muted = true;
+                this.synth = null;
+                this.isInitialized = false;
+            }
+
+            init() {
+                if (this.isInitialized) return;
+                
+                this.synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                this.synth.set({
+                    oscillator: { type: "triangle" },
+                    envelope: { attack: 0.05, decay: 0.1, sustain: 0.3, release: 0.1 }
+                });
+
+                this.fridgeHum = new Tone.Oscillator(100, "sawtooth").toDestination();
+                this.fridgeHumVolume = new Tone.Volume(-25).toDestination();
+                this.fridgeHum.connect(this.fridgeHumVolume);
+                
+                this.filter = new Tone.Filter(320, "lowpass").toDestination();
+                this.momSteps = new Tone.MembraneSynth().connect(this.filter);
+                this.momSteps.volume.value = 8;
+
+                this.pewSynth = new Tone.MonoSynth({
+                    oscillator: { type: "square" },
+                    envelope: { attack: 0.01, decay: 0.15, sustain: 0.0, release: 0.1 }
+                }).toDestination();
+                
+                this.noiseSynth = new Tone.NoiseSynth({
+                    noise: { type: "white" },
+                    envelope: { attack: 0.001, decay: 0.2, sustain: 0.0 }
+                }).toDestination();
+
+                this.isInitialized = true;
+            }
+
+            setMute(mute) {
+                this.muted = mute;
+                if (this.isInitialized) {
+                    Tone.Destination.mute = mute;
+                    if (!mute) {
+                        Tone.start();
+                    }
+                }
+            }
+
+            playEat() {
+                if (this.muted || !this.isInitialized) return;
+                this.synth.triggerAttackRelease(["C5", "F5"], "0.04");
+            }
+
+            playFridgeOpen() {
+                if (this.muted || !this.isInitialized) return;
+                try {
+                    this.fridgeHum.start();
+                    this.fridgeHumVolume.volume.rampTo(-15, 0.25);
+                    this.synth.triggerAttackRelease(["F4", "A4", "C5"], "0.15");
+                } catch (e) {}
+            }
+
+            playFridgeClose() {
+                if (this.muted || !this.isInitialized) return;
+                try {
+                    this.fridgeHumVolume.volume.rampTo(-45, 0.2);
+                    setTimeout(() => {
+                        this.fridgeHum.stop();
+                    }, 200);
+                    this.synth.triggerAttackRelease(["A4", "E4"], "0.1");
+                } catch (e) {}
+            }
+
+            playStep() {
+                if (this.muted || !this.isInitialized) return;
+                const pitches = ["B1", "A1", "G1", "F1"];
+                const p = pitches[Math.floor(Math.random() * pitches.length)];
+                this.momSteps.triggerAttackRelease(p, "0.15");
+            }
+
+            playThrow() {
+                if (this.muted || !this.isInitialized) return;
+                this.pewSynth.triggerAttackRelease("E5", "0.1");
+            }
+
+            playHit() {
+                if (this.muted || !this.isInitialized) return;
+                this.noiseSynth.triggerAttackRelease("0.1");
+                this.synth.triggerAttackRelease("C3", "0.08");
+            }
+
+            playThiefFlee() {
+                if (this.muted || !this.isInitialized) return;
+                this.synth.triggerAttackRelease(["D5", "G5", "B5"], "0.4");
+            }
+
+            playWarningAlarm() {
+                if (this.muted || !this.isInitialized) return;
+                this.synth.triggerAttackRelease(["C4", "C5"], "0.1");
+            }
+
+            playCaught() {
+                if (this.muted || !this.isInitialized) return;
+                this.fridgeHum.stop();
+                const caughtSynth = new Tone.PolySynth(Tone.Synth).toDestination();
+                caughtSynth.set({ oscillator: { type: "sawtooth" } });
+                caughtSynth.triggerAttackRelease(["B2", "C3", "C#3"], "1.2");
+            }
+
+            playStageClear() {
+                if (this.muted || !this.isInitialized) return;
+                this.fridgeHum.stop();
+                this.synth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "0.5");
+            }
+        }
+
+        const sound = new SoundEngine();
+
+
+        // GEMINI API SETTINGS (Free Tier, empty key resolved at Canvas runtime)
+        const geminiApiKey = "";
+        const geminiModel = "gemini-3-flash-preview";
+        const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiApiKey}`;
+
+        // Robust LLM caller with exponential backoff
+        async function fetchGemini(systemPrompt, userQuery, retries = 3, delay = 1000) {
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] }
+            };
+
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(geminiEndpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const result = await response.json();
+                    return result.candidates?.[0]?.content?.parts?.[0]?.text || null;
+                } catch (e) {
+                    if (i === retries - 1) {
+                        console.warn("Gemini API direct failure after max retries. Using smart offline logic.");
+                        return null;
+                    }
+                    await new Promise(r => setTimeout(r, delay * Math.pow(2, i))); // exponential backoff
+                }
+            }
+            return null;
+        }
+
+
+        // Game State Variables
+        let currentStageIndex = 0;
+        let satiety = 0;
+        let timeLeft = 60.0;
+        let isEating = false;
+        let isGameOver = false;
+        let isStageCleared = false;
+        
+        let momState = "IDLE"; // IDLE, APPROACHING, PEEKING, RETREATING
+        let momDangerLevel = 0; // 0 to 100
+        let gameLoopInterval = null;
+        let momActionTimeout = null;
+        let isSpacePressed = false;
+
+        // Threat Ambiguity Mechanism
+        let upcomingThreatType = "MOM"; // "MOM" or "BURGLAR"
+        let burglarActive = false;
+        let burglarHP = 100;
+        let burglarPositionX = 100; // far right = 100, fridge = 0
+        let burglarSpawnQueue = []; // Scheduled burglar timings
+        
+        // Weapon / Item system
+        let currentWeapon = {
+            emoji: "🥚",
+            dmg: 15,
+            noise: 5,
+            name: "タマゴ"
+        };
+
+        // LLM Active Conditions
+        let dailyCondition = {
+            title: "平穏な静寂",
+            timeModifier: 1.0,
+            momAggression: 1.0,
+            burglarAggression: 1.0,
+            description: "特別な補正はありません。極めて普通の深夜です。"
+        };
+
+        // Cache HTML elements
+        const elements = {
+            startScreen: document.getElementById('start-screen'),
+            gameoverScreen: document.getElementById('gameover-screen'),
+            clearScreen: document.getElementById('clear-screen'),
+            endingScreen: document.getElementById('ending-screen'),
+            excuseModal: document.getElementById('excuse-modal'),
+            
+            btnStart: document.getElementById('btn-start'),
+            btnRetry: document.getElementById('btn-retry'),
+            btnBackToTitle: document.getElementById('btn-back-to-title'),
+            btnBackToTitleFromEnd: document.getElementById('btn-back-to-title-from-end'),
+            btnNextStage: document.getElementById('btn-next-stage'),
+            btnAllClear: document.getElementById('btn-all-clear'),
+            btnSound: document.getElementById('btn-sound'),
+            btnEat: document.getElementById('btn-eat'),
+            btnThrow: document.getElementById('btn-throw'),
+            
+            excuseInput: document.getElementById('excuse-input'),
+            btnSubmitExcuse: document.getElementById('btn-submit-excuse'),
+            excuseLoading: document.getElementById('excuse-loading'),
+            excuseResult: document.getElementById('excuse-result'),
+            excuseScore: document.getElementById('excuse-score'),
+            excuseResponse: document.getElementById('excuse-response'),
+            btnExcuseContinue: document.getElementById('btn-excuse-continue'),
+            btnExcuseFail: document.getElementById('btn-excuse-fail'),
+            
+            soundOnIcon: document.getElementById('sound-on-icon'),
+            soundOffIcon: document.getElementById('sound-off-icon'),
+            
+            stageBadge: document.getElementById('stage-badge'),
+            targetFoodDesc: document.getElementById('target-food-desc'),
+            satietyValue: document.getElementById('satiety-value'),
+            satietyBar: document.getElementById('satiety-bar'),
+            timeRemaining: document.getElementById('time-remaining'),
+            timerBox: document.getElementById('timer-box'),
+            
+            forecastTitle: document.getElementById('forecast-title'),
+            forecastEffect: document.getElementById('forecast-effect'),
+            
+            dangerIndicator: document.getElementById('danger-indicator'),
+            dangerText: document.getElementById('danger-text'),
+            dangerAlertBar: document.getElementById('danger-alert-bar'),
+            alertFlash: document.getElementById('alert-flash'),
+            
+            kitchenDoor: document.getElementById('kitchen-door'),
+            shadowEmoji: document.getElementById('shadow-emoji'),
+            momShadow: document.getElementById('mom-shadow'),
+            momEyes: document.getElementById('mom-eyes'),
+            footstepBubble: document.getElementById('footstep-bubble'),
+            
+            burglarCharacter: document.getElementById('burglar-character'),
+            burglarHpFill: document.getElementById('burglar-hp-fill'),
+            burglarBubble: document.getElementById('burglar-bubble'),
+            burglarSprite: document.getElementById('burglar-sprite'),
+            projectileContainer: document.getElementById('projectile-container'),
+            
+            playerSprite: document.getElementById('player-sprite'),
+            playerLightReflection: document.getElementById('player-light-reflection'),
+            playerBubble: document.getElementById('player-bubble'),
+            playerStatusTag: document.getElementById('player-status-tag'),
+            
+            fridge: document.getElementById('fridge'),
+            fridgeDoor: document.getElementById('fridge-door'),
+            foodEmoji: document.getElementById('food-emoji'),
+            foodBites: document.getElementById('food-bites'),
+            
+            gameoverReason: document.getElementById('gameover-reason'),
+            gameoverStage: document.getElementById('gameover-stage'),
+            gameoverSatiety: document.getElementById('gameover-satiety'),
+            gameoverTitle: document.getElementById('gameover-title'),
+            gameoverEmoji: document.getElementById('gameover-emoji'),
+            aiRoastText: document.getElementById('ai-roast-text'),
+            
+            clearFoodName: document.getElementById('clear-food-name'),
+            clearTimeBonus: document.getElementById('clear-time-bonus'),
+            clearMessage: document.getElementById('clear-message'),
+            aiClearPraise: document.getElementById('ai-clear-praise')
+        };
+
+
+        // Audio Activation
+        elements.btnSound.addEventListener('click', () => {
+            sound.init();
+            const isCurrentlyMuted = sound.muted;
+            sound.setMute(!isCurrentlyMuted);
+            
+            if (sound.muted) {
+                elements.soundOnIcon.classList.add('hidden');
+                elements.soundOffIcon.classList.remove('hidden');
+            } else {
+                elements.soundOnIcon.classList.remove('hidden');
+                elements.soundOffIcon.classList.add('hidden');
+            }
+        });
+
+        // Click Start
+        elements.btnStart.addEventListener('click', () => {
+            sound.init();
+            elements.startScreen.classList.add('hidden');
+            initStage(0);
+        });
+
+        // Click Retry
+        elements.btnRetry.addEventListener('click', () => {
+            elements.gameoverScreen.classList.add('hidden');
+            initStage(currentStageIndex);
+        });
+
+        // Next Stage
+        elements.btnNextStage.addEventListener('click', () => {
+            elements.clearScreen.classList.add('hidden');
+            if (currentStageIndex + 1 < STAGES.length) {
+                currentStageIndex++;
+                initStage(currentStageIndex);
+            }
+        });
+
+        // Return Home
+        const returnToTitle = () => {
+            elements.gameoverScreen.classList.add('hidden');
+            elements.clearScreen.classList.add('hidden');
+            elements.endingScreen.classList.add('hidden');
+            elements.excuseModal.classList.add('hidden');
+            elements.startScreen.classList.remove('hidden');
+            resetMomSchedule();
+            hideBurglar();
+        };
+
+        elements.btnBackToTitle.addEventListener('click', returnToTitle);
+        elements.btnBackToTitleFromEnd.addEventListener('click', returnToTitle);
+
+        // Weapon Picker Triggers
+        document.querySelectorAll('.weapon-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Remove highlight from all
+                document.querySelectorAll('.weapon-btn').forEach(b => {
+                    b.classList.remove('border-purple-500/50', 'bg-purple-950/30');
+                    b.classList.add('border-slate-800', 'bg-slate-950');
+                    b.querySelector('span:last-child').classList.remove('font-bold');
+                });
+
+                // Highlight chosen
+                btn.classList.remove('border-slate-800', 'bg-slate-950');
+                btn.classList.add('border-purple-500/50', 'bg-purple-950/30');
+                btn.querySelector('span:last-child').classList.add('font-bold');
+
+                currentWeapon = {
+                    emoji: btn.dataset.emoji,
+                    dmg: parseInt(btn.dataset.dmg, 10),
+                    noise: parseInt(btn.dataset.noise, 10),
+                    name: btn.dataset.name
+                };
+
+                document.getElementById('selected-weapon-icon').textContent = currentWeapon.emoji;
+                sound.playHit();
+            });
+        });
+
+
+        // Daily LLM kitchen generator
+        async function fetchDailyForecast(stageIndex) {
+            elements.forecastTitle.textContent = "AIお母さんから今夜の状態を取得中...";
+            elements.forecastEffect.textContent = "おやつ、戸棚、泥棒の活性度を読み込んでいます...";
+
+            const currentFood = STAGES[stageIndex].food;
+            const systemPrompt = `深夜の冷蔵庫ゲームの特殊ステージ補正（ランダムイベント）を生成してください。
+JSON形式で正確に出力してください。キーは必ず "title" (面白い日本語のタイトル15字以内), "timeModifier" (0.8から1.4の数値), "momAggression" (0.7から1.6の数値), "burglarAggression" (0.7から1.5の数値), "description" (今夜のルール説明日本語30字以内) の5つを含むオブジェクトにしてください。説明文では、お母さんの眠りやすさや泥棒の動き、おやつについてユーモラスに描写してください。`;
+
+            const query = `Stage: ${stageIndex + 1}, Target Snack: ${currentFood}.`;
+            const responseText = await fetchGemini(systemPrompt, query);
+
+            if (responseText) {
+                try {
+                    // Strip markdown blocks if any
+                    const cleanJson = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+                    const parsed = JSON.parse(cleanJson);
+                    
+                    dailyCondition = {
+                        title: parsed.title || "深夜の普通の夜",
+                        timeModifier: parseFloat(parsed.timeModifier) || 1.0,
+                        momAggression: parseFloat(parsed.momAggression) || 1.0,
+                        burglarAggression: parseFloat(parsed.burglarAggression) || 1.0,
+                        description: parsed.description || "特に変わった様子はないようだ。"
+                    };
+                } catch (e) {
+                    // Fallback on JSON parse error
+                    setupFallbackCondition();
+                }
+            } else {
+                setupFallbackCondition();
+            }
+
+            // Apply condition mechanics
+            elements.forecastTitle.textContent = dailyCondition.title;
+            elements.forecastEffect.textContent = dailyCondition.description;
+            timeLeft = STAGES[stageIndex].timeLimit * dailyCondition.timeModifier;
+            updateTimerDisplay();
+        }
+
+        function setupFallbackCondition() {
+            const fallbackPool = [
+                { title: "お母さんの不眠症", timeModifier: 1.1, momAggression: 1.5, burglarAggression: 0.9, description: "お母さんがピリピリしている！接近スピード1.5倍、でも夜明けが遅い！" },
+                { title: "泥棒の満腹パーティー", timeModifier: 0.9, momAggression: 0.8, burglarAggression: 1.4, description: "泥棒の動きが素早い！ただしお母さんは熟睡していて見つかりにくいぞ！" },
+                { title: "嵐の深夜ピクニック", timeModifier: 1.2, momAggression: 1.2, burglarAggression: 1.2, description: "嵐の音で足音が聞き取りにくい！全員の接近速度がやや上昇中。" }
+            ];
+            dailyCondition = fallbackPool[Math.floor(Math.random() * fallbackPool.length)];
+        }
+
+
+        // Set up the Stage metrics
+        function initStage(stageIdx) {
+            currentStageIndex = stageIdx;
+            const stage = STAGES[stageIdx];
+            
+            satiety = 0;
+            timeLeft = stage.timeLimit;
+            isEating = false;
+            isGameOver = false;
+            isStageCleared = false;
+            
+            momState = "IDLE";
+            momDangerLevel = 0;
+
+            // Clear Burglar State
+            burglarActive = false;
+            burglarPositionX = 100;
+            burglarHP = 100;
+            elements.burglarCharacter.classList.add('hidden');
+
+            // Queue up consistent burglar spawns (Stage 1: 1 thief, Stage 2-3: 2 thieves, Stage 4-5: 3 thieves)
+            burglarSpawnQueue = [];
+            const thiefCount = Math.min(3, Math.floor(stageIdx / 2) + 1);
+            for(let i=0; i < thiefCount; i++) {
+                // space them out nicely across the stage duration
+                const ratio = (i + 1) / (thiefCount + 1);
+                const spawnTime = stage.timeLimit * ratio;
+                burglarSpawnQueue.push(spawnTime);
+            }
+
+            // Reset HUD Elements
+            elements.stageBadge.textContent = `STAGE ${stage.id}`;
+            elements.targetFoodDesc.textContent = stage.description;
+            elements.foodEmoji.textContent = stage.emoji;
+            elements.foodEmoji.style.transform = 'scale(1)';
+            elements.satietyBar.style.width = '0%';
+            elements.satietyValue.textContent = '0%';
+            
+            updateTimerDisplay();
+            elements.timerBox.classList.remove('heartbeat-low-time');
+
+            // Reset Fridge & Player Views
+            elements.fridge.classList.remove('open');
+            elements.playerLightReflection.style.backgroundColor = 'rgba(253, 224, 71, 0)';
+            elements.playerSprite.textContent = "🤫";
+            elements.playerStatusTag.textContent = "水を飲んでるフリ";
+            elements.playerStatusTag.className = "text-xs px-2 py-0.5 bg-slate-950/80 rounded border border-slate-800 text-gray-400 font-medium";
+
+            // Interrogation text areas reset
+            elements.excuseInput.value = "";
+            elements.excuseResult.classList.add('hidden');
+            elements.btnExcuseContinue.classList.add('hidden');
+            elements.btnExcuseFail.classList.add('hidden');
+            elements.btnSubmitExcuse.classList.remove('hidden');
+
+            // Safety indicator resets
+            updateDangerUI();
+            closeKitchenDoor();
+            
+            // Clean up intervals
+            if (gameLoopInterval) clearInterval(gameLoopInterval);
+            resetMomSchedule();
+
+            // Fire main game loop
+            gameLoopInterval = setInterval(update, 100);
+
+            // Fetch dynamic AI condition
+            fetchDailyForecast(stageIdx);
+
+            // Plan first walk
+            scheduleMomApproach();
+        }
+
+
+        // Toggle Refrigerator State (Open & Eat or Close)
+        function toggleEating() {
+            if (isGameOver || isStageCleared || elements.excuseModal.classList.contains('hidden') === false) return;
+            if (isEating) {
+                stopEating();
+            } else {
+                startEating();
+            }
+        }
+
+        // Eat Actions
+        function startEating() {
+            if (isGameOver || isStageCleared) return;
+            if (!isEating) {
+                isEating = true;
+                elements.fridge.classList.add('open');
+                elements.playerLightReflection.style.backgroundColor = 'rgba(253, 224, 71, 0.4)';
+                elements.playerSprite.textContent = "😋";
+                elements.playerStatusTag.textContent = "貪り食い中！";
+                elements.playerStatusTag.className = "text-xs px-2 py-0.5 bg-yellow-500 text-slate-950 rounded font-bold animate-pulse";
+                elements.playerBubble.style.opacity = '1';
+                
+                // Change button label to CLOSE
+                const eatBtnText = document.getElementById('eat-btn-text');
+                if (eatBtnText) eatBtnText.textContent = "🚪 しめる (CLOSE)";
+                
+                sound.playFridgeOpen();
+            }
+        }
+
+        function stopEating() {
+            if (isEating) {
+                isEating = false;
+                elements.fridge.classList.remove('open');
+                elements.playerLightReflection.style.backgroundColor = 'rgba(253, 224, 71, 0)';
+                elements.playerSprite.textContent = "🤫";
+                elements.playerStatusTag.textContent = "水を飲んでるフリ";
+                elements.playerStatusTag.className = "text-xs px-2 py-0.5 bg-slate-950/80 rounded border border-slate-800 text-gray-400 font-medium";
+                elements.playerBubble.style.opacity = '0';
+                
+                // Change button label to OPEN
+                const eatBtnText = document.getElementById('eat-btn-text');
+                if (eatBtnText) eatBtnText.textContent = "🚪 あける (OPEN)";
+                
+                sound.playFridgeClose();
+            }
+        }
+
+        // Event Binders
+        elements.btnEat.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleEating();
+        });
+
+        // Space Key handlers
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (!isSpacePressed) {
+                    isSpacePressed = true;
+                    toggleEating();
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') {
+                isSpacePressed = false;
+            }
+        });
+
+
+        // Trigger Weapon Projectile to Defeat Burglar
+        function throwFood() {
+            if (isGameOver || isStageCleared) return;
+            
+            // Requires open fridge to grab ammunition!
+            if (!isEating) {
+                showVisualHint("冷蔵庫を開けてないと投げられない！");
+                return;
+            }
+
+            // Cannot throw if there's no burglar or if burglar is hidden!
+            if (!burglarActive) {
+                showVisualHint("投げる相手がいないぞ！");
+                return;
+            }
+
+            // If player mistakenly throws an item while MOM is approaching (and not a burglar!)
+            if (upcomingThreatType === "MOM" && momState === "APPROACHING" && !burglarActive) {
+                momDangerLevel = 100; // instant catch
+                showVisualHint("暗闇に向かって音を立ててしまった！");
+                return;
+            }
+
+            // Attack makes NOISE! Increases mom danger level dynamically based on current weapon
+            if (momState === "APPROACHING") {
+                momDangerLevel += currentWeapon.noise * dailyCondition.momAggression;
+                if (momDangerLevel > 100) momDangerLevel = 100;
+                flashFootstepBubble();
+            }
+
+            sound.playThrow();
+
+            // Spawn projectile animation
+            const projEl = document.createElement('div');
+            projEl.textContent = currentWeapon.emoji;
+            projEl.className = "projectile text-4xl filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.5)]";
+            
+            // Position start over Player
+            const playerRect = elements.playerSprite.getBoundingClientRect();
+            const burglarRect = elements.burglarCharacter.getBoundingClientRect();
+            
+            projEl.style.left = `${playerRect.left + playerRect.width/2}px`;
+            projEl.style.top = `${playerRect.top + playerRect.height/2}px`;
+            elements.projectileContainer.appendChild(projEl);
+
+            // Animate transition to burglar center
+            setTimeout(() => {
+                projEl.style.left = `${burglarRect.left + burglarRect.width/2}px`;
+                projEl.style.top = `${burglarRect.top + burglarRect.height/2}px`;
+                projEl.style.transform = `rotate(${Math.random() * 360}deg) scale(1.6)`;
+            }, 10);
+
+            // Listen for flight completion
+            setTimeout(() => {
+                projEl.remove();
+                hitBurglar(currentWeapon.dmg);
+            }, 350);
+        }
+
+        elements.btnThrow.addEventListener('click', throwFood);
+        elements.burglarCharacter.addEventListener('click', throwFood); 
+
+        // Set quick templates
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                elements.excuseInput.value = btn.textContent.replace(/[「」]/g, '');
+            });
+        });
+
+
+        // Spawns Burglar
+        function spawnBurglar() {
+            if (isGameOver || isStageCleared || burglarActive) return;
+            
+            burglarActive = true;
+            burglarHP = 100;
+            burglarPositionX = 100; // Far right
+            
+            elements.burglarCharacter.classList.remove('hidden');
+            elements.burglarCharacter.style.right = '12px';
+            elements.burglarHpFill.style.width = '100%';
+            elements.burglarSprite.textContent = "🥷";
+            
+            showBurglarBubble("おやつはオレ様のものだ！🥷");
+            sound.playStep();
+        }
+
+        // Damage calculation
+        function hitBurglar(damage) {
+            if (!burglarActive || isGameOver || isStageCleared) return;
+            
+            burglarHP -= damage; 
+            sound.playHit();
+
+            // Knockback effect
+            burglarPositionX = Math.min(100, burglarPositionX + 15);
+            elements.burglarCharacter.style.right = `${12 + (100 - burglarPositionX) * 2}px`;
+            
+            elements.burglarSprite.classList.add('animate-ping');
+            setTimeout(() => {
+                elements.burglarSprite.classList.remove('animate-ping');
+            }, 180);
+
+            if (burglarHP <= 0) {
+                defeatBurglar();
+            } else {
+                elements.burglarHpFill.style.width = `${burglarHP}%`;
+                showBurglarBubble(`ギャッ！強力な${currentWeapon.name}だ！💥`);
+            }
+        }
+
+        // Flee
+        function defeatBurglar() {
+            burglarActive = false;
+            sound.playThiefFlee();
+            showBurglarBubble("退散ーーッ！おやつめっ！💦");
+            elements.burglarSprite.textContent = "🏃‍♂️💨";
+            
+            // Recovery bonuses
+            satiety = Math.min(100, satiety + 15);
+            elements.satietyBar.style.width = `${satiety}%`;
+            elements.satietyValue.textContent = `${Math.floor(satiety)}%`;
+
+            setTimeout(() => {
+                elements.burglarCharacter.classList.add('hidden');
+            }, 800);
+        }
+
+        function hideBurglar() {
+            burglarActive = false;
+            elements.burglarCharacter.classList.add('hidden');
+        }
+
+        function showBurglarBubble(text) {
+            elements.burglarBubble.textContent = text;
+            elements.burglarBubble.style.opacity = '1';
+            setTimeout(() => {
+                elements.burglarBubble.style.opacity = '0';
+            }, 1300);
+        }
+
+        function showVisualHint(text) {
+            elements.playerBubble.textContent = text;
+            elements.playerBubble.style.opacity = '1';
+            setTimeout(() => {
+                elements.playerBubble.style.opacity = '0';
+                elements.playerBubble.textContent = "もぐもぐ…";
+            }, 1400);
+        }
+
+
+        // AI Excuse Processing
+        async function submitExcuse() {
+            const excuseText = elements.excuseInput.value.trim();
+            if (!excuseText) {
+                alert("言い訳を入力するか、下のテンプレートを選んでください！");
+                return;
+            }
+
+            elements.btnSubmitExcuse.classList.add('hidden');
+            elements.excuseLoading.classList.remove('hidden');
+
+            const foodName = STAGES[currentStageIndex].food;
+            const satietyPercent = Math.floor(satiety);
+            
+            const systemPrompt = `あなたはゲームに登場する「深夜に冷蔵庫のおやつを盗み食いしている子供を現行犯で見つけたお母さん」です。
+子供の言い訳の信憑性（0から100の数値）を厳格に評価し、お母さんのユーモラスな反論を作成してください。
+必ず出力フォーマットを厳守してください。
+1行目: 数値のみ（例: 78）
+2行目以降: お母さんからの小言・納得の言葉（日本語、80文字以内。今回の状況：食べかけの「${foodName}」、子供の満腹度「${satietyPercent}%」を踏まえて皮肉を言ってください）`;
+
+            const query = `子供の言い訳：「${excuseText}」`;
+            const response = await fetchGemini(systemPrompt, query);
+
+            elements.excuseLoading.classList.add('hidden');
+            elements.excuseResult.classList.remove('hidden');
+
+            let score = 50;
+            let comment = "お母さんはじっとあなたの顔を見つめている。何も話してくれない。";
+
+            if (response) {
+                const lines = response.split('\n').map(l => l.trim()).filter(Boolean);
+                const parsedScore = parseInt(lines[0], 10);
+                if (!isNaN(parsedScore)) {
+                    score = parsedScore;
+                    comment = lines.slice(1).join('\n');
+                } else {
+                    // Fail-safe parsing
+                    const match = response.match(/\d+/);
+                    if (match) {
+                        score = parseInt(match[0], 10);
+                        comment = response.replace(/\d+/, '').trim();
+                    } else {
+                        score = excuseText.length > 15 ? 75 : 40;
+                        comment = response;
+                    }
+                }
+            } else {
+                // Offline fallback logic
+                if (excuseText.includes("水") || excuseText.includes("薬") || excuseText.includes("音")) {
+                    score = 80;
+                    comment = "「…本当に水だけ？ 口の周りにクリームが付いてる気がするけど、今夜はもう寝なさい！」";
+                } else {
+                    score = 45;
+                    comment = "「そんなバレバレの嘘をつくんじゃないの！早く片付けて部屋に戻りなさい！」";
+                }
+            }
+
+            elements.excuseScore.textContent = `${score}点`;
+            elements.excuseResponse.textContent = comment;
+
+            // Score > 70 qualifies as convincing
+            if (score >= 70) {
+                elements.excuseScore.className = "text-xl font-black text-green-400 font-mono";
+                elements.btnExcuseContinue.classList.remove('hidden');
+            } else {
+                elements.excuseScore.className = "text-xl font-black text-red-500 font-mono";
+                elements.btnExcuseFail.classList.remove('hidden');
+            }
+        }
+
+        elements.btnSubmitExcuse.addEventListener('click', submitExcuse);
+
+        elements.btnExcuseContinue.addEventListener('click', () => {
+            elements.excuseModal.classList.add('hidden');
+            startMomRetreat();
+            // Resume loops
+            gameLoopInterval = setInterval(update, 100);
+        });
+
+        elements.btnExcuseFail.addEventListener('click', () => {
+            elements.excuseModal.classList.add('hidden');
+            triggerGameOver("お母さんに嘘を見破られた！ひどいお説教コースだ！", "👹", "大目玉！！！");
+        });
+
+
+        // Core Tick Loop (100ms interval)
+        function update() {
+            if (isGameOver || isStageCleared || !elements.excuseModal.classList.contains('hidden')) return;
+
+            const currentStage = STAGES[currentStageIndex];
+
+            // 1. Process Time Limit
+            timeLeft -= 0.1;
+            if (timeLeft <= 0) {
+                timeLeft = 0;
+                triggerGameOver("夜が明けてしまった！おやつを完食できずにタイムアップ！", "🌅", "朝が来た！");
+                return;
+            }
+            updateTimerDisplay();
+
+            // Heartbeat warnings
+            if (timeLeft <= 10.0) {
+                elements.timerBox.classList.add('heartbeat-low-time');
+                if (Math.round(timeLeft * 10) % 10 === 0) {
+                    sound.playWarningAlarm();
+                }
+            } else {
+                elements.timerBox.classList.remove('heartbeat-low-time');
+            }
+
+            // 2. Process Scheduled Burglar Events
+            if (burglarSpawnQueue.length > 0 && timeLeft <= burglarSpawnQueue[0]) {
+                burglarSpawnQueue.shift(); // remove from queue
+                spawnBurglar();
+            }
+
+            // 3. Process Eating Mechanics
+            if (isEating) {
+                satiety += currentStage.eatSpeed;
+                if (satiety > currentStage.satietyToClear) satiety = currentStage.satietyToClear;
+
+                elements.satietyBar.style.width = `${satiety}%`;
+                elements.satietyValue.textContent = `${Math.floor(satiety)}%`;
+
+                if (Math.random() < 0.3) {
+                    sound.playEat();
+                    elements.foodBites.classList.remove('opacity-0');
+                    elements.foodBites.style.transform = `translate(-50%, -50%) rotate(${Math.random() * 30 - 15}deg) scale(${1 + Math.random() * 0.35})`;
+                    setTimeout(() => {
+                        elements.foodBites.classList.add('opacity-0');
+                    }, 140);
+                }
+
+                // Food shrinks visually
+                const remainingRatio = (currentStage.satietyToClear - satiety) / currentStage.satietyToClear;
+                elements.foodEmoji.style.transform = `scale(${0.35 + 0.65 * remainingRatio})`;
+
+                if (satiety >= currentStage.satietyToClear) {
+                    triggerStageClear();
+                    return;
+                }
+            }
+
+            // 4. Burglar Movement & Stealing
+            if (burglarActive) {
+                // If Mom is looking, Thief gets scared and stops moving!
+                if (momState !== "PEEKING") {
+                    burglarPositionX -= 1.2 * dailyCondition.burglarAggression;
+                    if (burglarPositionX <= 0) {
+                        burglarPositionX = 0;
+                        // Stealing satiety
+                        satiety = Math.max(0, satiety - 1.8);
+                        elements.satietyBar.style.width = `${satiety}%`;
+                        elements.satietyValue.textContent = `${Math.floor(satiety)}%`;
+                        showBurglarBubble("うめえ！もっとよこせ！💰");
+                        
+                        const remainingRatio = (currentStage.satietyToClear - satiety) / currentStage.satietyToClear;
+                        elements.foodEmoji.style.transform = `scale(${0.35 + 0.65 * remainingRatio})`;
+                    }
+                    elements.burglarCharacter.style.right = `${12 + (100 - burglarPositionX) * 2}px`;
+                } else {
+                    // Freeze
+                    elements.burglarSprite.textContent = "😨";
+                }
+            }
+
+            // 5. Threat Progression (Ambiguous Footsteps)
+            if (momState === "APPROACHING") {
+                momDangerLevel += (2.2 * dailyCondition.momAggression);
+                if (momDangerLevel >= 100) {
+                    momDangerLevel = 100;
+                    revealThreat();
+                }
+                updateDangerUI();
+
+                if (Math.floor(momDangerLevel) % 25 === 0) {
+                    sound.playStep();
+                    flashFootstepBubble();
+                }
+            } else if (momState === "RETREATING") {
+                momDangerLevel -= 5;
+                if (momDangerLevel <= 0) {
+                    momDangerLevel = 0;
+                    momState = "IDLE";
+                    closeKitchenDoor();
+                    scheduleMomApproach();
+                }
+                updateDangerUI();
+            }
+        }
+
+        // TIMER HUD updater
+        function updateTimerDisplay() {
+            elements.timeRemaining.textContent = timeLeft.toFixed(1);
+            if (timeLeft <= 10.0) {
+                elements.timeRemaining.className = "text-lg font-black text-red-500 font-mono tracking-widest";
+            } else if (timeLeft <= 20.0) {
+                elements.timeRemaining.className = "text-lg font-black text-yellow-500 font-mono tracking-widest";
+            } else {
+                elements.timeRemaining.className = "text-lg font-black text-green-400 font-mono tracking-widest";
+            }
+        }
+
+        function flashFootstepBubble() {
+            elements.footstepBubble.style.opacity = '1';
+            elements.dangerAlertBar.classList.add('shake-warning');
+            setTimeout(() => {
+                elements.footstepBubble.style.opacity = '0';
+                elements.dangerAlertBar.classList.remove('shake-warning');
+            }, 500);
+        }
+
+
+        // Schedules upcoming threat walk
+        function scheduleMomApproach() {
+            if (isGameOver || isStageCleared) return;
+            const currentStage = STAGES[currentStageIndex];
+            const interval = Math.random() * (currentStage.momIntervalMax - currentStage.momIntervalMin) + currentStage.momIntervalMin;
+            
+            momActionTimeout = setTimeout(() => {
+                startApproach();
+            }, interval);
+        }
+
+        function resetMomSchedule() {
+            if (momActionTimeout) clearTimeout(momActionTimeout);
+        }
+
+        // Start ambiguous approach
+        function startApproach() {
+            if (isGameOver || isStageCleared) return;
+            momState = "APPROACHING";
+            momDangerLevel = 0;
+
+            // Randomize whether it's actually Mom or a burglar
+            upcomingThreatType = Math.random() < 0.5 ? "MOM" : "BURGLAR";
+
+            elements.kitchenDoor.style.transform = 'rotateY(15deg)';
+            elements.momShadow.style.opacity = '0.3';
+            elements.shadowEmoji.textContent = "❓"; // keeps it ambiguous!
+        }
+
+        // Reveal the true identity of the footstep
+        function revealThreat() {
+            if (upcomingThreatType === "MOM") {
+                // True Mom peeks in
+                momState = "PEEKING";
+                elements.kitchenDoor.style.transform = 'rotateY(75deg)';
+                elements.momShadow.style.opacity = '1';
+                elements.shadowEmoji.textContent = "👵";
+                elements.momEyes.classList.remove('opacity-0');
+                elements.alertFlash.classList.add('bg-red-600/30');
+
+                // Quick checking window
+                setTimeout(() => {
+                    checkCatchSuccess();
+                }, 180);
+            } else {
+                // Footstep was a Burglar! Spawn him immediately
+                spawnBurglar();
+                
+                // Clear the footstep state since it wasn't mom
+                momState = "RETREATING";
+                elements.shadowEmoji.textContent = "❓";
+            }
+        }
+
+        // Evaluate reflex action success for Mom
+        function checkCatchSuccess() {
+            if (isGameOver || isStageCleared) return;
+
+            if (isEating) {
+                // CAUGHT! Trigger Excuse Interrogation Modal instead of sudden gameover!
+                clearInterval(gameLoopInterval); // pause main updates
+                elements.excuseModal.classList.remove('hidden');
+                sound.playWarningAlarm();
+            } else {
+                // SAFE. Player is drinking water quietly.
+                elements.playerSprite.textContent = "🫣";
+                elements.playerStatusTag.textContent = "気配を殺している…！";
+                elements.playerStatusTag.className = "text-xs px-2 py-0.5 bg-blue-500 text-white rounded font-bold animate-pulse";
+                elements.dangerIndicator.className = "inline-block w-2.5 h-2.5 rounded-full bg-red-600 animate-ping";
+                elements.dangerText.textContent = "お母さんが部屋を見回している...";
+
+                momActionTimeout = setTimeout(() => {
+                    startMomRetreat();
+                }, 1500 + Math.random() * 1000);
+            }
+        }
+
+        // Mom retreats
+        function startMomRetreat() {
+            if (isGameOver || isStageCleared) return;
+            momState = "RETREATING";
+            elements.momEyes.classList.add('opacity-0');
+            elements.momShadow.style.opacity = '0.3';
+            elements.kitchenDoor.style.transform = 'rotateY(15deg)';
+            elements.alertFlash.classList.remove('bg-red-600/30');
+
+            elements.playerSprite.textContent = "🤫";
+            elements.playerStatusTag.textContent = "水を飲んでるフリ";
+            elements.playerStatusTag.className = "text-xs px-2 py-0.5 bg-slate-950/80 rounded border border-slate-800 text-gray-400 font-medium";
+            
+            if (burglarActive) {
+                elements.burglarSprite.textContent = "🥷";
+            }
+        }
+
+        function closeKitchenDoor() {
+            elements.kitchenDoor.style.transform = 'rotateY(0deg)';
+            elements.momShadow.style.opacity = '0';
+            elements.momEyes.classList.add('opacity-0');
+            elements.alertFlash.classList.remove('bg-red-600/30');
+        }
+
+
+        // Handle warning alerts UI
+        function updateDangerUI() {
+            if (momState === "IDLE") {
+                elements.dangerIndicator.className = "inline-block w-2.5 h-2.5 rounded-full bg-green-500";
+                elements.dangerText.textContent = "気配なし (SAFE)";
+                elements.dangerAlertBar.className = "bg-slate-950/20 py-2 border-y border-slate-900/30 flex justify-center items-center space-x-2 z-10 transition-colors duration-300";
+            } else if (momState === "APPROACHING") {
+                const threatPercent = Math.floor(momDangerLevel);
+                elements.dangerIndicator.className = "inline-block w-2.5 h-2.5 rounded-full bg-yellow-500 animate-pulse";
+                elements.dangerText.textContent = `足音が近づいている！ (${threatPercent}%)`;
+                elements.dangerAlertBar.className = "bg-yellow-950/30 py-2 border-y border-yellow-900/30 flex justify-center items-center space-x-2 z-10 transition-colors duration-300";
+            } else if (momState === "PEEKING") {
+                elements.dangerIndicator.className = "inline-block w-2.5 h-2.5 rounded-full bg-red-600 animate-ping";
+                elements.dangerText.textContent = "お母さんが見ている！";
+                elements.dangerAlertBar.className = "bg-red-950/60 py-2 border-y border-red-900/50 flex justify-center items-center space-x-2 z-10 transition-colors duration-300";
+            } else if (momState === "RETREATING") {
+                elements.dangerIndicator.className = "inline-block w-2.5 h-2.5 rounded-full bg-green-400";
+                elements.dangerText.textContent = "音の主は去っていく…";
+                elements.dangerAlertBar.className = "bg-green-950/20 py-2 border-y border-green-900/30 flex justify-center items-center space-x-2 z-10 transition-colors duration-300";
+            }
+        }
+
+
+        // AI Game Over Roast Generator
+        async function generateAiRoast(reason) {
+            elements.aiRoastText.textContent = "お母さんが特製のお説教を用意しています... 💬";
+            const foodName = STAGES[currentStageIndex].food;
+            const satietyPercent = Math.floor(satiety);
+
+            const systemPrompt = `深夜に冷蔵庫あらしをして捕まった子供に対するお母さんの辛辣な激怒説教を1つ作成してください。
+子供は「${foodName}」を「満腹度${satietyPercent}%」まで食べ進めたところで捕まりました。
+深夜のおやつ行為、散らかった状況、子供の太り気味・だらしなさ、翌朝の朝食の欠如を、皮肉たっぷりの日本語120文字以内で説教してください。絶対に優しくしないでください。`;
+
+            const roast = await fetchGemini(systemPrompt, `Reason for capture: ${reason}`);
+            elements.aiRoastText.textContent = roast || "「こんな時間に冷蔵庫を開けて！明日の朝ごはんのおかずが無くなっちゃうでしょ！早く寝なさい！」";
+        }
+
+        // AI Clear Praise Generator
+        async function generateAiClearPraise() {
+            elements.aiClearPraise.textContent = "今夜の成功を振り返り中... 💬";
+            const foodName = STAGES[currentStageIndex].food;
+            const remainingSec = timeLeft.toFixed(1);
+
+            const systemPrompt = `深夜の冷蔵庫あらしで「${foodName}」を完食してステルス成功した子供に対するユーモラスな勝者の賛辞を作成してください。
+子供は制限時間を「${remainingSec}秒」残して完璧に食べきりました。
+台所の冷蔵庫の前の暗闇、泥棒を追い払ったアクション、明日の朝お母さんが驚く様子などを交え、ユーモラスでファンタジーな日本語120文字以内で褒め称えてください。`;
+
+            const praise = await fetchGemini(systemPrompt, "The raider succeeded!");
+            elements.aiClearPraise.textContent = praise || "「完璧な犯行だ！お母さんは明日の朝、とっておきのおやつが消失しているミステリーに直面する。この台所の覇者は君だ！」";
+        }
+
+        // Game Over Trigger
+        function triggerGameOver(reason, emoji = "👹", title = "コラァーッ！！！") {
+            isGameOver = true;
+            stopEating();
+            resetMomSchedule();
+            hideBurglar();
+            if (gameLoopInterval) clearInterval(gameLoopInterval);
+            
+            sound.playCaught();
+
+            elements.gameoverEmoji.textContent = emoji;
+            elements.gameoverTitle.textContent = title;
+            elements.gameoverReason.textContent = reason;
+            elements.gameoverStage.textContent = `STAGE ${STAGES[currentStageIndex].id}`;
+            elements.gameoverSatiety.textContent = `${Math.floor(satiety)}%`;
+
+            elements.gameoverScreen.classList.remove('hidden');
+
+            // Generate AI dynamic roast
+            generateAiRoast(reason);
+        }
+
+        // Win Trigger
+        function triggerStageClear() {
+            isStageCleared = true;
+            stopEating();
+            resetMomSchedule();
+            hideBurglar();
+            if (gameLoopInterval) clearInterval(gameLoopInterval);
+            
+            sound.playStageClear();
+
+            const finishedStage = STAGES[currentStageIndex];
+            elements.clearFoodName.textContent = `${finishedStage.food} ${finishedStage.emoji}`;
+            elements.clearTimeBonus.textContent = `${timeLeft.toFixed(1)}秒`;
+
+            // Setup next stage buttons
+            if (currentStageIndex + 1 < STAGES.length) {
+                elements.btnNextStage.classList.remove('hidden');
+                elements.btnAllClear.classList.add('hidden');
+                elements.clearMessage.textContent = "見事におやつを食べ尽くし、泥棒の野望も打ち砕いた！お母さんはまだベッドの中だ。";
+            } else {
+                elements.btnNextStage.classList.add('hidden');
+                elements.btnAllClear.classList.remove('hidden');
+                elements.clearMessage.textContent = "すべてのステージをクリア！完璧な深夜の冷蔵庫ディフェンダーだ！";
+            }
+
+            elements.clearScreen.classList.remove('hidden');
+
+            // Generate AI dynamic clear text
+            generateAiClearPraise();
+        }
+
+        // Game Finish Victory Button
+        elements.btnAllClear.addEventListener('click', () => {
+            elements.clearScreen.classList.add('hidden');
+            elements.endingScreen.classList.remove('hidden');
+        });
+    </script>
+</body>
+</html>
